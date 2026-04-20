@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Microdosing Tracker</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f5f0;color:#1a1a1a;min-height:100vh}
+.app{max-width:600px;margin:0 auto;padding:1rem}
+h1{font-size:18px;font-weight:500;margin-bottom:1.5rem;color:#1a1a1a}
+.tabs{display:flex;gap:8px;margin-bottom:1.5rem}
+.tab{padding:6px 16px;border:1px solid #ccc;border-radius:8px;background:transparent;cursor:pointer;font-size:14px;color:#666}
+.tab.active{background:#fff;color:#1a1a1a;border-color:#999}
+.section{display:none}.section.active{display:block}
+.card{background:#fff;border:1px solid #e0e0d8;border-radius:12px;padding:1rem 1.25rem;margin-bottom:1rem}
+.card-header{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:12px}
+.card-title{font-size:13px;color:#666;font-weight:500}
+.today-date{font-size:13px;font-weight:500;color:#1a1a1a}
+.substances{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.sub-btn{padding:10px 8px;border:1px solid #e0e0d8;border-radius:8px;background:transparent;cursor:pointer;font-size:13px;color:#666;text-align:center;transition:all 0.1s}
+.sub-btn.active{border-color:#B8860B;background:#FFF9C4;color:#7A5800}
+.metric-row{display:flex;flex-direction:column;gap:4px;margin-bottom:14px}
+.metric-label{font-size:13px;color:#666;display:flex;justify-content:space-between}
+.metric-val{font-weight:500;color:#1a1a1a;font-size:13px}
+input[type=range]{width:100%;accent-color:#1D9E75}
+.num-input{width:100%;padding:6px 10px;border:1px solid #e0e0d8;border-radius:8px;font-size:14px;color:#1a1a1a;background:#fff}
+.num-input:focus{outline:none;border-color:#999}
+.notes-area{width:100%;padding:8px 10px;border:1px solid #e0e0d8;border-radius:8px;font-size:13px;color:#1a1a1a;resize:vertical;min-height:80px;background:#fff;font-family:inherit}
+.notes-area:focus{outline:none;border-color:#999}
+.emoji-row{display:flex;gap:8px;margin-top:6px}
+.emoji-btn{flex:1;padding:10px 4px;border:1px solid #e0e0d8;border-radius:8px;background:transparent;cursor:pointer;font-size:20px;text-align:center;transition:all 0.1s}
+.emoji-btn.active{border-color:#B8860B;background:#FFF9C4}
+.save-btn{width:100%;padding:12px;border:1px solid #ccc;border-radius:8px;background:#fff;cursor:pointer;font-size:14px;font-weight:500;color:#1a1a1a;margin-bottom:8px}
+.save-btn:hover{background:#f5f5f0}
+.status{font-size:12px;color:#666;text-align:center;height:20px;margin-bottom:8px}
+.divider{border:none;border-top:1px solid #f0f0e8;margin:12px 0}
+.metric-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:1rem}
+.mc{background:#f5f5f0;border-radius:8px;padding:12px;text-align:center}
+.mc-label{font-size:11px;color:#666;margin-bottom:4px}
+.mc-val{font-size:22px;font-weight:500;color:#1a1a1a}
+.chart-wrap{position:relative;width:100%;height:220px;margin-bottom:0.5rem}
+.chart-note{font-size:11px;color:#999;font-style:italic}
+.log-list{display:flex;flex-direction:column}
+.log-item{display:flex;justify-content:space-between;align-items:flex-start;padding:10px 0;border-bottom:1px solid #f0f0e8}
+.log-item:last-child{border-bottom:none}
+.log-date{font-size:13px;color:#1a1a1a;font-weight:500}
+.log-meta{font-size:12px;color:#999;margin-top:2px}
+.no-data{font-size:13px;color:#999;text-align:center;padding:2rem 0}
+.del-btn{background:transparent;border:1px solid #e0e0d8;border-radius:6px;cursor:pointer;font-size:11px;color:#999;padding:4px 8px;margin-left:8px;flex-shrink:0}
+.del-btn:hover{border-color:#e05a3a;color:#e05a3a}
+.legend{display:flex;gap:16px;margin-bottom:8px;font-size:12px;color:#666}
+.legend-dot{display:inline-block;width:12px;height:3px;border-radius:2px;margin-right:4px;vertical-align:middle}
+</style>
+</head>
+<body>
+<div class="app">
+  <h1>Microdosing Tracker</h1>
+  <div class="tabs">
+    <button class="tab active" onclick="showTab('log',event)">Loggen</button>
+    <button class="tab" onclick="showTab('dashboard',event)">Dashboard</button>
+    <button class="tab" onclick="showTab('beheer',event)">Beheer</button>
+  </div>
+
+  <div id="log" class="section active">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Stoffen vandaag</div>
+        <div class="today-date" id="today-date-sub"></div>
+      </div>
+      <div class="substances">
+        <div class="sub-btn" id="s-ash" onclick="toggleSub('ash',this)">Ashwagandha</div>
+        <div class="sub-btn" id="s-psi" onclick="toggleSub('psi',this)">Psilocybine</div>
+        <div class="sub-btn" id="s-lth" onclick="toggleSub('lth',this)">L-Theanine</div>
+        <div class="sub-btn" id="s-alc" onclick="toggleSub('alc',this)">Alcohol</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Hoe voel je je?</div>
+        <div class="today-date" id="today-date-feel"></div>
+      </div>
+      <div class="metric-row">
+        <div class="metric-label"><span>Focus</span><span class="metric-val" id="focus-val">5</span></div>
+        <input type="range" min="1" max="10" value="5" step="1" id="focus" oninput="document.getElementById('focus-val').textContent=this.value">
+      </div>
+      <div class="metric-row">
+        <div class="metric-label"><span>Stemming</span><span class="metric-val" id="stemming-val">5</span></div>
+        <input type="range" min="1" max="10" value="5" step="1" id="stemming" oninput="document.getElementById('stemming-val').textContent=this.value">
+      </div>
+      <hr class="divider">
+      <div class="metric-row">
+        <div class="metric-label"><span>Angst / hangxiety</span><span class="metric-val" id="angst-val">5</span></div>
+        <input type="range" min="1" max="10" value="5" step="1" id="angst" oninput="document.getElementById('angst-val').textContent=this.value">
+      </div>
+      <div class="metric-row" style="margin-bottom:12px">
+        <div class="metric-label"><span>HRV (ms)</span></div>
+        <input type="number" class="num-input" id="hrv" placeholder="bijv. 65">
+      </div>
+      <hr class="divider">
+      <div class="metric-row" style="margin-bottom:0">
+        <div class="metric-label"><span>Creativiteit</span></div>
+        <div class="emoji-row">
+          <button class="emoji-btn" onclick="selectCreat(1,this)" title="Nul inspiratie">😶</button>
+          <button class="emoji-btn" onclick="selectCreat(2,this)" title="Beetje vlot">🙂</button>
+          <button class="emoji-btn" onclick="selectCreat(3,this)" title="In de flow">😄</button>
+          <button class="emoji-btn" onclick="selectCreat(4,this)" title="Euforisch creatief">🤩</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title" style="margin-bottom:8px">Notities</div>
+      <textarea class="notes-area" id="notes" placeholder="Vrije tekst..."></textarea>
+    </div>
+    <button class="save-btn" onclick="saveEntry()">Opslaan</button>
+    <div class="status" id="status"></div>
+  </div>
+
+  <div id="dashboard" class="section">
+    <div class="metric-cards">
+      <div class="mc"><div class="mc-label">Gem. focus</div><div class="mc-val" id="avg-focus">—</div></div>
+      <div class="mc"><div class="mc-label">Gem. stemming</div><div class="mc-val" id="avg-stemming">—</div></div>
+      <div class="mc"><div class="mc-label">Gem. angst</div><div class="mc-val" id="avg-angst">—</div></div>
+    </div>
+    <div class="metric-cards">
+      <div class="mc"><div class="mc-label">Gem. HRV</div><div class="mc-val" id="avg-hrv">—</div></div>
+      <div class="mc"><div class="mc-label">Gem. creativiteit</div><div class="mc-val" id="avg-creat">—</div></div>
+      <div class="mc"><div class="mc-label">Logs totaal</div><div class="mc-val" id="total-logs">0</div></div>
+    </div>
+    <div class="card">
+      <div class="card-title" style="margin-bottom:8px">Focus, stemming & angst</div>
+      <div class="legend">
+        <span><span class="legend-dot" style="background:#1D9E75;display:inline-block"></span>Focus</span>
+        <span><span class="legend-dot" style="background:#378ADD;display:inline-block"></span>Stemming</span>
+        <span><span class="legend-dot" style="background:#D85A30;display:inline-block"></span>Angst</span>
+      </div>
+      <div class="chart-wrap"><canvas id="chartMain"></canvas></div>
+      <p class="chart-note">Effecten zijn gelinkt aan de innames van de dag voordien.</p>
+    </div>
+    <div class="card">
+      <div class="card-title" style="margin-bottom:8px">HRV over tijd</div>
+      <div class="chart-wrap" style="height:160px"><canvas id="chartHRV"></canvas></div>
+      <p class="chart-note">Effecten zijn gelinkt aan de innames van de dag voordien.</p>
+    </div>
+  </div>
+
+  <div id="beheer" class="section">
+    <div id="history-list"></div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+const STORAGE_KEY='microdose_logs_v3';
+const CREAT_EMOJI=['','😶','🙂','😄','🤩'];
+const SUB_NAMES={ash:'Ashwagandha',psi:'Psilocybine',lth:'L-Theanine',alc:'Alcohol'};
+let activeSubs={},selectedCreat=0,chartMain=null,chartHRV=null;
+
+function getLogs(){try{return JSON.parse(localStorage.getItem(STORAGE_KEY)||'[]')}catch(e){return[]}}
+function saveLogs(l){localStorage.setItem(STORAGE_KEY,JSON.stringify(l))}
+
+const todayStr=new Date().toLocaleDateString('nl-BE',{weekday:'long',day:'numeric',month:'long'});
+document.getElementById('today-date-sub').textContent=todayStr;
+document.getElementById('today-date-feel').textContent=todayStr;
+
+function toggleSub(id,el){
+  if(activeSubs[id]){delete activeSubs[id];el.classList.remove('active')}
+  else{activeSubs[id]=true;el.classList.add('active')}
+}
+function selectCreat(val,btn){
+  selectedCreat=val;
+  document.querySelectorAll('.emoji-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+}
+function showTab(t,e){
+  document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.getElementById(t).classList.add('active');
+  e.target.classList.add('active');
+  if(t==='dashboard')renderDashboard();
+  if(t==='beheer')renderHistory();
+}
+function saveEntry(){
+  const entry={
+    ts:Date.now(),
+    date:new Date().toLocaleDateString('nl-BE'),
+    subs:Object.keys(activeSubs),
+    focus:parseInt(document.getElementById('focus').value),
+    stemming:parseInt(document.getElementById('stemming').value),
+    angst:parseInt(document.getElementById('angst').value),
+    hrv:parseFloat(document.getElementById('hrv').value)||null,
+    creat:selectedCreat||null,
+    notes:document.getElementById('notes').value.trim()
+  };
+  const logs=getLogs();
+  logs.push(entry);
+  saveLogs(logs);
+  const st=document.getElementById('status');
+  st.textContent='Opgeslagen ✅';
+  setTimeout(()=>st.textContent='',2000);
+  resetForm();
+}
+function resetForm(){
+  activeSubs={};selectedCreat=0;
+  ['ash','psi','lth','alc'].forEach(s=>document.getElementById('s-'+s).classList.remove('active'));
+  ['focus','stemming','angst'].forEach(id=>{document.getElementById(id).value=5;document.getElementById(id+'-val').textContent='5';});
+  document.getElementById('hrv').value='';
+  document.getElementById('notes').value='';
+  document.querySelectorAll('.emoji-btn').forEach(b=>b.classList.remove('active'));
+}
+function avg(arr){
+  const v=arr.filter(x=>x!=null&&!isNaN(x));
+  return v.length?Math.round(v.reduce((a,b)=>a+b,0)/v.length*10)/10:null;
+}
+function renderHistory(){
+  const container=document.getElementById('history-list');
+  while(container.firstChild)container.removeChild(container.firstChild);
+  const logs=getLogs().slice().reverse();
+  if(!logs.length){
+    const msg=document.createElement('div');
+    msg.className='no-data';msg.textContent='Nog geen logs.';
+    container.appendChild(msg);return;
+  }
+  const list=document.createElement('div');
+  list.className='log-list';
+  logs.forEach(l=>{
+    const row=document.createElement('div');
+    row.className='log-item';
+    const subsStr=(l.subs||[]).map(s=>SUB_NAMES[s]||s).join(', ')||'—';
+    const creatEmoji=l.creat?CREAT_EMOJI[l.creat]:'—';
+    const info=document.createElement('div');
+    info.style.flex='1';
+    info.innerHTML=`<div class="log-date">${l.date}</div>
+      <div class="log-meta">${subsStr}</div>
+      <div class="log-meta">Focus ${l.focus} · Stemming ${l.stemming||'—'} · Angst ${l.angst}${l.hrv?' · HRV '+l.hrv:''} · ${creatEmoji}</div>
+      ${l.notes?`<div class="log-meta" style="font-style:italic">"${l.notes.substring(0,80)}${l.notes.length>80?'...':''}"</div>`:''}`;
+    const btn=document.createElement('button');
+    btn.className='del-btn';
+    btn.textContent='verwijder';
+    const ts=l.ts;
+    btn.onclick=function(){
+      const updated=getLogs().filter(x=>x.ts!==ts);
+      saveLogs(updated);
+      list.removeChild(row);
+      if(list.children.length===0){
+        while(container.firstChild)container.removeChild(container.firstChild);
+        const msg=document.createElement('div');
+        msg.className='no-data';msg.textContent='Nog geen logs.';
+        container.appendChild(msg);
+      }
+    };
+    row.appendChild(info);row.appendChild(btn);
+    list.appendChild(row);
+  });
+  container.appendChild(list);
+}
+function renderDashboard(){
+  const logs=getLogs();
+  document.getElementById('total-logs').textContent=logs.length;
+  if(!logs.length){
+    ['avg-focus','avg-stemming','avg-hrv','avg-angst','avg-creat'].forEach(id=>document.getElementById(id).textContent='—');
+    if(chartMain){chartMain.destroy();chartMain=null}
+    if(chartHRV){chartHRV.destroy();chartHRV=null}
+    return;
+  }
+  document.getElementById('avg-focus').textContent=avg(logs.map(l=>l.focus))??'—';
+  document.getElementById('avg-stemming').textContent=avg(logs.map(l=>l.stemming))??'—';
+  document.getElementById('avg-hrv').textContent=avg(logs.map(l=>l.hrv))??'—';
+  document.getElementById('avg-angst').textContent=avg(logs.map(l=>l.angst))??'—';
+  const ac=avg(logs.map(l=>l.creat));
+  document.getElementById('avg-creat').textContent=ac!=null?CREAT_EMOJI[Math.round(ac)]:'—';
+  const recent=logs.slice(-14);
+  if(chartMain)chartMain.destroy();
+  chartMain=new Chart(document.getElementById('chartMain'),{
+    type:'line',
+    data:{labels:recent.map(l=>l.date),datasets:[
+      {label:'Focus',data:recent.map(l=>l.focus),borderColor:'#1D9E75',backgroundColor:'transparent',tension:0.3,pointRadius:3},
+      {label:'Stemming',data:recent.map(l=>l.stemming),borderColor:'#378ADD',backgroundColor:'transparent',tension:0.3,pointRadius:3,borderDash:[6,3]},
+      {label:'Angst',data:recent.map(l=>l.angst),borderColor:'#D85A30',backgroundColor:'transparent',tension:0.3,pointRadius:3,borderDash:[2,4]}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{min:1,max:10,ticks:{stepSize:1}}}}
+  });
+  const hrvF=recent.filter(l=>l.hrv!=null);
+  if(chartHRV)chartHRV.destroy();chartHRV=null;
+  if(hrvF.length){
+    chartHRV=new Chart(document.getElementById('chartHRV'),{
+      type:'line',
+      data:{labels:hrvF.map(l=>l.date),datasets:[{label:'HRV',data:hrvF.map(l=>l.hrv),borderColor:'#7F77DD',backgroundColor:'transparent',tension:0.3,pointRadius:3}]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}}}
+    });
+  }
+}
+renderHistory();
+</script>
+</body>
+</html>
