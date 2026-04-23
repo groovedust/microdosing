@@ -7,16 +7,17 @@
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f5f0;color:#1a1a1a;min-height:100vh}
-.app{max-width:600px;margin:0 auto;padding:1rem}
-h1{font-size:18px;font-weight:500;margin-bottom:1.5rem;color:#1a1a1a}
+.app{max-width:680px;margin:0 auto;padding:1rem}
+h1{font-size:18px;font-weight:500;margin-bottom:1.5rem}
 .tabs{display:flex;gap:8px;margin-bottom:1.5rem}
 .tab{padding:6px 16px;border:1px solid #ccc;border-radius:8px;background:transparent;cursor:pointer;font-size:14px;color:#666}
 .tab.active{background:#fff;color:#1a1a1a;border-color:#999}
 .section{display:none}.section.active{display:block}
 .card{background:#fff;border:1px solid #e0e0d8;border-radius:12px;padding:1rem 1.25rem;margin-bottom:1rem}
-.card-header{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:12px}
+.card-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
 .card-title{font-size:13px;color:#666;font-weight:500}
-.today-date{font-size:13px;font-weight:500;color:#1a1a1a}
+.date-picker{font-size:13px;font-weight:500;color:#1a1a1a;border:1px solid #e0e0d8;border-radius:6px;padding:3px 6px;background:#f5f5f0}
+.date-picker:focus{outline:none;border-color:#999}
 .substances{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
 .sub-btn{padding:10px 8px;border:1px solid #e0e0d8;border-radius:8px;background:transparent;cursor:pointer;font-size:13px;color:#666;text-align:center;transition:all 0.1s}
 .sub-btn.active{border-color:#B8860B;background:#FFF9C4;color:#7A5800}
@@ -39,8 +40,10 @@ input[type=range]{width:100%;accent-color:#1D9E75}
 .mc{background:#f5f5f0;border-radius:8px;padding:12px;text-align:center}
 .mc-label{font-size:11px;color:#666;margin-bottom:4px}
 .mc-val{font-size:22px;font-weight:500;color:#1a1a1a}
-.chart-wrap{position:relative;width:100%;height:220px;margin-bottom:0.5rem}
-.chart-note{font-size:11px;color:#999;font-style:italic}
+.chart-container{width:100%;overflow-x:auto;margin-top:8px}
+.legend-row{display:flex;flex-wrap:wrap;gap:10px;margin:6px 0;font-size:11px;color:#666;align-items:center}
+.legend-row span{display:flex;align-items:center;gap:4px}
+.lsq{display:inline-block;width:10px;height:10px;border-radius:2px}
 .log-list{display:flex;flex-direction:column}
 .log-item{display:flex;justify-content:space-between;align-items:flex-start;padding:10px 0;border-bottom:1px solid #f0f0e8}
 .log-item:last-child{border-bottom:none}
@@ -49,8 +52,6 @@ input[type=range]{width:100%;accent-color:#1D9E75}
 .no-data{font-size:13px;color:#999;text-align:center;padding:2rem 0}
 .del-btn{background:transparent;border:1px solid #e0e0d8;border-radius:6px;cursor:pointer;font-size:11px;color:#999;padding:4px 8px;margin-left:8px;flex-shrink:0}
 .del-btn:hover{border-color:#e05a3a;color:#e05a3a}
-.legend{display:flex;gap:16px;margin-bottom:8px;font-size:12px;color:#666}
-.legend-dot{display:inline-block;width:12px;height:3px;border-radius:2px;margin-right:4px;vertical-align:middle}
 </style>
 </head>
 <body>
@@ -62,11 +63,12 @@ input[type=range]{width:100%;accent-color:#1D9E75}
     <button class="tab" onclick="showTab('beheer',event)">Beheer</button>
   </div>
 
+  <!-- LOG -->
   <div id="log" class="section active">
     <div class="card">
       <div class="card-header">
         <div class="card-title">Stoffen vandaag</div>
-        <div class="today-date" id="today-date-sub"></div>
+        <input type="date" class="date-picker" id="log-date">
       </div>
       <div class="substances">
         <div class="sub-btn" id="s-ash" onclick="toggleSub('ash',this)">Ashwagandha</div>
@@ -75,12 +77,8 @@ input[type=range]{width:100%;accent-color:#1D9E75}
         <div class="sub-btn" id="s-alc" onclick="toggleSub('alc',this)">Alcohol</div>
       </div>
     </div>
-
     <div class="card">
-      <div class="card-header">
-        <div class="card-title">Hoe voel je je?</div>
-        <div class="today-date" id="today-date-feel"></div>
-      </div>
+      <div class="card-title" style="margin-bottom:12px">Hoe voel je je?</div>
       <div class="metric-row">
         <div class="metric-label"><span>Focus</span><span class="metric-val" id="focus-val">5</span></div>
         <input type="range" min="1" max="10" value="5" step="1" id="focus" oninput="document.getElementById('focus-val').textContent=this.value">
@@ -102,14 +100,13 @@ input[type=range]{width:100%;accent-color:#1D9E75}
       <div class="metric-row" style="margin-bottom:0">
         <div class="metric-label"><span>Creativiteit</span></div>
         <div class="emoji-row">
-          <button class="emoji-btn" onclick="selectCreat(1,this)" title="Nul inspiratie">😶</button>
-          <button class="emoji-btn" onclick="selectCreat(2,this)" title="Beetje vlot">🙂</button>
-          <button class="emoji-btn" onclick="selectCreat(3,this)" title="In de flow">😄</button>
-          <button class="emoji-btn" onclick="selectCreat(4,this)" title="Euforisch creatief">🤩</button>
+          <button class="emoji-btn" onclick="selectCreat(1,this)">😶</button>
+          <button class="emoji-btn" onclick="selectCreat(2,this)">🙂</button>
+          <button class="emoji-btn" onclick="selectCreat(3,this)">😄</button>
+          <button class="emoji-btn" onclick="selectCreat(4,this)">🤩</button>
         </div>
       </div>
     </div>
-
     <div class="card">
       <div class="card-title" style="margin-bottom:8px">Notities</div>
       <textarea class="notes-area" id="notes" placeholder="Vrije tekst..."></textarea>
@@ -118,6 +115,7 @@ input[type=range]{width:100%;accent-color:#1D9E75}
     <div class="status" id="status"></div>
   </div>
 
+  <!-- DASHBOARD -->
   <div id="dashboard" class="section">
     <div class="metric-cards">
       <div class="mc"><div class="mc-label">Gem. focus</div><div class="mc-val" id="avg-focus">—</div></div>
@@ -129,41 +127,60 @@ input[type=range]{width:100%;accent-color:#1D9E75}
       <div class="mc"><div class="mc-label">Gem. creativiteit</div><div class="mc-val" id="avg-creat">—</div></div>
       <div class="mc"><div class="mc-label">Logs totaal</div><div class="mc-val" id="total-logs">0</div></div>
     </div>
+
     <div class="card">
-      <div class="card-title" style="margin-bottom:8px">Focus, stemming & angst</div>
-      <div class="legend">
-        <span><span class="legend-dot" style="background:#1D9E75;display:inline-block"></span>Focus</span>
-        <span><span class="legend-dot" style="background:#378ADD;display:inline-block"></span>Stemming</span>
-        <span><span class="legend-dot" style="background:#D85A30;display:inline-block"></span>Angst</span>
+      <div class="card-title">Focus, stemming & angst</div>
+      <div class="legend-row">
+        <span><svg width="18" height="4"><line x1="0" y1="2" x2="18" y2="2" stroke="#1D9E75" stroke-width="2"/></svg>Focus</span>
+        <span><svg width="18" height="4"><line x1="0" y1="2" x2="18" y2="2" stroke="#378ADD" stroke-width="2" stroke-dasharray="4,2"/></svg>Stemming</span>
+        <span><svg width="18" height="4"><line x1="0" y1="2" x2="18" y2="2" stroke="#D85A30" stroke-width="2" stroke-dasharray="2,2"/></svg>Angst</span>
       </div>
-      <div class="chart-wrap"><canvas id="chartMain"></canvas></div>
-      <p class="chart-note">Effecten zijn gelinkt aan de innames van de dag voordien.</p>
+      <div class="legend-row">
+        <span><span class="lsq" style="background:#00b4d8"></span><span class="lsq" style="background:#e0f7fc;border:1px solid #00b4d8"></span> Ashwagandha</span>
+        <span><span class="lsq" style="background:#f72585"></span><span class="lsq" style="background:#fde8f5;border:1px solid #f72585"></span> Psilocybine</span>
+        <span><span class="lsq" style="background:#fb8500"></span><span class="lsq" style="background:#fff3e0;border:1px solid #fb8500"></span> L-Theanine</span>
+        <span><span class="lsq" style="background:#6d6875"></span><span class="lsq" style="background:#ede7f0;border:1px solid #6d6875"></span> Alcohol (↓)</span>
+      </div>
+      <div class="chart-container" id="chart-main-wrap"></div>
     </div>
+
     <div class="card">
-      <div class="card-title" style="margin-bottom:8px">HRV over tijd</div>
-      <div class="chart-wrap" style="height:160px"><canvas id="chartHRV"></canvas></div>
-      <p class="chart-note">Effecten zijn gelinkt aan de innames van de dag voordien.</p>
+      <div class="card-title">HRV over tijd</div>
+      <div class="legend-row">
+        <span><svg width="18" height="4"><line x1="0" y1="2" x2="18" y2="2" stroke="#7F77DD" stroke-width="2"/></svg>HRV (ms)</span>
+        <span style="color:#bbb">blokjes = inname dag voordien</span>
+      </div>
+      <div class="chart-container" id="chart-hrv-wrap"></div>
     </div>
   </div>
 
+  <!-- BEHEER -->
   <div id="beheer" class="section">
     <div id="history-list"></div>
   </div>
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <script>
 const STORAGE_KEY='microdose_logs_v3';
 const CREAT_EMOJI=['','😶','🙂','😄','🤩'];
 const SUB_NAMES={ash:'Ashwagandha',psi:'Psilocybine',lth:'L-Theanine',alc:'Alcohol'};
-let activeSubs={},selectedCreat=0,chartMain=null,chartHRV=null;
+const SUB_FULL={ash:'#00b4d8',psi:'#f72585',lth:'#fb8500',alc:'#6d6875'};
+const SUB_FADE={ash:'#e0f7fc',psi:'#fde8f5',lth:'#fff3e0',alc:'#ede7f0'};
+const POS_SUBS=['ash','psi','lth'];
+const NEG_SUBS=['alc'];
+
+let activeSubs={},selectedCreat=0;
 
 function getLogs(){try{return JSON.parse(localStorage.getItem(STORAGE_KEY)||'[]')}catch(e){return[]}}
 function saveLogs(l){localStorage.setItem(STORAGE_KEY,JSON.stringify(l))}
 
-const todayStr=new Date().toLocaleDateString('nl-BE',{weekday:'long',day:'numeric',month:'long'});
-document.getElementById('today-date-sub').textContent=todayStr;
-document.getElementById('today-date-feel').textContent=todayStr;
+// Datum helpers
+function todayISO(){return new Date().toISOString().split('T')[0];}
+function isoToDisplay(iso){return new Date(iso+'T12:00:00').toLocaleDateString('nl-BE');}
+function addDays(iso,n){const d=new Date(iso+'T12:00:00');d.setDate(d.getDate()+n);return d.toISOString().split('T')[0];}
+
+// Zet datumveld altijd op vandaag bij laden
+document.getElementById('log-date').value=todayISO();
 
 function toggleSub(id,el){
   if(activeSubs[id]){delete activeSubs[id];el.classList.remove('active')}
@@ -183,9 +200,9 @@ function showTab(t,e){
   if(t==='beheer')renderHistory();
 }
 function saveEntry(){
+  const iso=document.getElementById('log-date').value;
   const entry={
-    ts:Date.now(),
-    date:new Date().toLocaleDateString('nl-BE'),
+    ts:Date.now(),date:isoToDisplay(iso),isoDate:iso,
     subs:Object.keys(activeSubs),
     focus:parseInt(document.getElementById('focus').value),
     stemming:parseInt(document.getElementById('stemming').value),
@@ -195,7 +212,12 @@ function saveEntry(){
     notes:document.getElementById('notes').value.trim()
   };
   const logs=getLogs();
+  // Verwijder eventuele bestaande log van dezelfde dag
+  const idx=logs.findIndex(l=>l.isoDate===iso);
+  if(idx>=0)logs.splice(idx,1);
   logs.push(entry);
+  // Sorteer: oudste eerst
+  logs.sort((a,b)=>a.isoDate>b.isoDate?1:a.isoDate<b.isoDate?-1:0);
   saveLogs(logs);
   const st=document.getElementById('status');
   st.textContent='Opgeslagen ✅';
@@ -209,90 +231,232 @@ function resetForm(){
   document.getElementById('hrv').value='';
   document.getElementById('notes').value='';
   document.querySelectorAll('.emoji-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('log-date').value=todayISO();
 }
 function avg(arr){
   const v=arr.filter(x=>x!=null&&!isNaN(x));
   return v.length?Math.round(v.reduce((a,b)=>a+b,0)/v.length*10)/10:null;
 }
+
+// ── SVG GRAFIEK ──────────────────────────────────────────────────────────────
+// days: array gesorteerd oudste→nieuwste (links→rechts)
+// seriesDef: {key: [values]} zelfde lengte als days
+// Blokjes per dag i = subs van dag i-1 (isoDate van dag voordien)
+function buildChart(days, seriesDef, containerId, totalH){
+  const wrap=document.getElementById(containerId);
+  if(!days||days.length<2){
+    wrap.innerHTML='<p style="color:#999;font-size:13px;padding:12px 0">Nog te weinig data (min. 2 logs).</p>';
+    return;
+  }
+
+  const W=620;
+  const BLK=10, GAP=3;
+  const nPos=POS_SUBS.length;  // 3: ash psi lth boven
+  const nNeg=NEG_SUBS.length;  // 1: alc onder
+  const topBand=nPos*(BLK+GAP)+18;
+  const botBand=nNeg*(BLK+GAP)+18;
+  const ml=40, mr=12;
+  const plotH=totalH-topBand-botBand;
+  const plotW=W-ml-mr;
+  const n=days.length;
+  const xStep=n>1?plotW/(n-1):plotW;
+
+  // Bouw isoDate→subs map voor snelle lookup
+  const isoMap={};
+  function toISO(l){
+    if(l.isoDate)return l.isoDate;
+    const p=(l.date||'').split('/');
+    if(p.length===3)return p[2]+'-'+p[1].padStart(2,'0')+'-'+p[0].padStart(2,'0');
+    return null;
+  }
+  days.forEach(d=>{const k=toISO(d);if(k)isoMap[k]=d.subs||[];});
+
+  function xp(i){return ml+i*xStep;}
+  // yp met dynamische schaal op basis van min/max van de data
+  const allVals=Object.values(seriesDef).flat().filter(v=>v!=null);
+  const dataMin=Math.min(...allVals);
+  const dataMax=Math.max(...allVals);
+  const yMin=dataMin<5?0:Math.floor(dataMin*0.85);
+  const yMax=dataMax>10?Math.ceil(dataMax*1.1):10;
+  function yp(v){return topBand+plotH-((v-yMin)/(yMax-yMin))*plotH;}
+  // rasterlijnen op basis van schaal
+  const yRange=yMax-yMin;
+  const yStep=yRange<=10?2:yRange<=50?10:yRange<=100?20:50;
+
+  const els=[];
+
+  // Rasterlijnen op basis van dynamische schaal
+  for(let v=Math.ceil(yMin/yStep)*yStep;v<=yMax;v+=yStep){
+    const y=yp(v);
+    els.push(`<line x1="${ml}" y1="${y}" x2="${W-mr}" y2="${y}" stroke="#f0f0e8" stroke-width="1"/>`);
+    els.push(`<text x="${ml-5}" y="${y+4}" text-anchor="end" font-size="10" fill="#bbb">${v}</text>`);
+  }
+  // x-as
+  els.push(`<line x1="${ml}" y1="${topBand+plotH}" x2="${W-mr}" y2="${topBand+plotH}" stroke="#ddd" stroke-width="1"/>`);
+
+  // Datums op x-as
+  const labelStep=Math.max(1,Math.ceil(n/7));
+  days.forEach((d,i)=>{
+    if(i%labelStep!==0&&i!==n-1)return;
+    const parts=(d.date||'').split('/');
+    const lbl=parts.length>=2?parts[0]+'/'+parts[1]:d.date;
+    els.push(`<text x="${xp(i)}" y="${topBand+plotH+botBand-2}" text-anchor="middle" font-size="9" fill="#aaa">${lbl}</text>`);
+  });
+
+  // Labels Y-as blokjes
+  POS_SUBS.forEach((s,si)=>{
+    const by=topBand-(nPos-si)*(BLK+GAP)+BLK/2+3;
+    const short={ash:'Ash',psi:'Psi',lth:'Lth'}[s];
+    els.push(`<text x="${ml-4}" y="${by}" text-anchor="end" font-size="8" fill="${SUB_FULL[s]}">${short}</text>`);
+  });
+  NEG_SUBS.forEach((s,si)=>{
+    const by=topBand+plotH+8+si*(BLK+GAP)+BLK/2+3;
+    els.push(`<text x="${ml-4}" y="${by}" text-anchor="end" font-size="8" fill="${SUB_FULL[s]}">Alc</text>`);
+  });
+
+  // Stofblokjes per dag
+  // Dag i toont de subs van dag i-1 (= effect vertraagd met 1 dag)
+  days.forEach((d,i)=>{
+    const x=xp(i);
+    const bw=Math.max(5,Math.min(16,xStep*0.6));
+
+    // Zoek subs van dag voordien via exacte isoDate
+    let prevSubs=[];
+    const dIso=toISO(d);
+    if(dIso){
+      const prevIso=addDays(dIso,-1);
+      prevSubs=isoMap[prevIso]||[];
+    }
+
+    // Positieve stoffen boven plot
+    POS_SUBS.forEach((s,si)=>{
+      const has=prevSubs.includes(s);
+      const by=topBand-(nPos-si)*(BLK+GAP);
+      els.push(`<rect x="${(x-bw/2).toFixed(1)}" y="${by}" width="${bw}" height="${BLK}" rx="2" fill="${has?SUB_FULL[s]:SUB_FADE[s]}" opacity="${has?1:0.5}"/>`);
+    });
+
+    // Alcohol onder plot
+    NEG_SUBS.forEach((s,si)=>{
+      const has=prevSubs.includes(s);
+      const by=topBand+plotH+6+si*(BLK+GAP);
+      els.push(`<rect x="${(x-bw/2).toFixed(1)}" y="${by}" width="${bw}" height="${BLK}" rx="2" fill="${has?SUB_FULL[s]:SUB_FADE[s]}" opacity="${has?1:0.5}"/>`);
+    });
+  });
+
+  // Lijnen
+  const styles={
+    focus:{c:'#1D9E75',d:''},
+    stemming:{c:'#378ADD',d:'6,3'},
+    angst:{c:'#D85A30',d:'2,3'},
+    hrv:{c:'#7F77DD',d:''}
+  };
+  Object.entries(seriesDef).forEach(([key,vals])=>{
+    const st=styles[key]||{c:'#888',d:''};
+    let path='';
+    vals.forEach((v,i)=>{
+      if(v==null)return;
+      const cmd=(path===''||vals[i-1]==null)?'M':'L';
+      path+=`${cmd}${xp(i).toFixed(1)},${yp(v).toFixed(1)} `;
+    });
+    if(path)els.push(`<path d="${path.trim()}" fill="none" stroke="${st.c}" stroke-width="2.5" stroke-dasharray="${st.d}" stroke-linejoin="round" stroke-linecap="round"/>`);
+    vals.forEach((v,i)=>{
+      if(v==null)return;
+      const label=key==='hrv'?v+' ms':key.charAt(0).toUpperCase()+key.slice(1)+': '+v;
+      const cx=xp(i), cy=yp(v);
+      els.push(`<circle cx="${cx}" cy="${cy}" r="3.5" fill="${st.c}" class="hov-dot" style="cursor:pointer"
+        onmouseenter="showTip(evt,'${days[i].date} — ${label}')"
+        onmouseleave="hideTip()"/>`);
+    });
+  });
+
+  wrap.innerHTML=`<svg viewBox="0 0 ${W} ${totalH}" width="100%" xmlns="http://www.w3.org/2000/svg">${els.join('')}</svg>`;
+}
+
+function renderDashboard(){
+  const allLogs=getLogs();
+  document.getElementById('total-logs').textContent=allLogs.length;
+  if(allLogs.length){
+    document.getElementById('avg-focus').textContent=avg(allLogs.map(l=>l.focus))??'—';
+    document.getElementById('avg-stemming').textContent=avg(allLogs.map(l=>l.stemming))??'—';
+    document.getElementById('avg-hrv').textContent=avg(allLogs.map(l=>l.hrv))??'—';
+    document.getElementById('avg-angst').textContent=avg(allLogs.map(l=>l.angst))??'—';
+    const ac=avg(allLogs.map(l=>l.creat));
+    document.getElementById('avg-creat').textContent=ac!=null?CREAT_EMOJI[Math.round(ac)]:'—';
+  }
+
+  // Laatste 14 logs, gesorteerd oudste→nieuwste (links→rechts)
+  function toSortKey(l){
+    if(l.isoDate)return l.isoDate;
+    const p=(l.date||'').split('/');
+    if(p.length===3)return p[2]+'-'+p[1].padStart(2,'0')+'-'+p[0].padStart(2,'0');
+    return l.date||'';
+  }
+  const recent=[...allLogs].sort((a,b)=>toSortKey(a)>toSortKey(b)?1:-1).slice(-14);
+
+  buildChart(
+    recent,
+    {focus:recent.map(l=>l.focus), stemming:recent.map(l=>l.stemming), angst:recent.map(l=>l.angst)},
+    'chart-main-wrap', 300
+  );
+
+  const hrvDays=recent.filter(l=>l.hrv!=null);
+  buildChart(hrvDays, {hrv:hrvDays.map(l=>l.hrv)}, 'chart-hrv-wrap', 220);
+}
+
 function renderHistory(){
   const container=document.getElementById('history-list');
   while(container.firstChild)container.removeChild(container.firstChild);
   const logs=getLogs().slice().reverse();
   if(!logs.length){
-    const msg=document.createElement('div');
-    msg.className='no-data';msg.textContent='Nog geen logs.';
-    container.appendChild(msg);return;
+    const msg=document.createElement('div');msg.className='no-data';msg.textContent='Nog geen logs.';container.appendChild(msg);return;
   }
-  const list=document.createElement('div');
-  list.className='log-list';
+  const list=document.createElement('div');list.className='log-list';
   logs.forEach(l=>{
-    const row=document.createElement('div');
-    row.className='log-item';
+    const row=document.createElement('div');row.className='log-item';
     const subsStr=(l.subs||[]).map(s=>SUB_NAMES[s]||s).join(', ')||'—';
     const creatEmoji=l.creat?CREAT_EMOJI[l.creat]:'—';
-    const info=document.createElement('div');
-    info.style.flex='1';
+    const info=document.createElement('div');info.style.flex='1';
     info.innerHTML=`<div class="log-date">${l.date}</div>
       <div class="log-meta">${subsStr}</div>
       <div class="log-meta">Focus ${l.focus} · Stemming ${l.stemming||'—'} · Angst ${l.angst}${l.hrv?' · HRV '+l.hrv:''} · ${creatEmoji}</div>
       ${l.notes?`<div class="log-meta" style="font-style:italic">"${l.notes.substring(0,80)}${l.notes.length>80?'...':''}"</div>`:''}`;
-    const btn=document.createElement('button');
-    btn.className='del-btn';
-    btn.textContent='verwijder';
+    const btn=document.createElement('button');btn.className='del-btn';btn.textContent='verwijder';
     const ts=l.ts;
     btn.onclick=function(){
       const updated=getLogs().filter(x=>x.ts!==ts);
       saveLogs(updated);
       list.removeChild(row);
-      if(list.children.length===0){
+      if(!list.children.length){
         while(container.firstChild)container.removeChild(container.firstChild);
-        const msg=document.createElement('div');
-        msg.className='no-data';msg.textContent='Nog geen logs.';
-        container.appendChild(msg);
+        const msg=document.createElement('div');msg.className='no-data';msg.textContent='Nog geen logs.';container.appendChild(msg);
       }
     };
-    row.appendChild(info);row.appendChild(btn);
-    list.appendChild(row);
+    row.appendChild(info);row.appendChild(btn);list.appendChild(row);
   });
   container.appendChild(list);
 }
-function renderDashboard(){
-  const logs=getLogs();
-  document.getElementById('total-logs').textContent=logs.length;
-  if(!logs.length){
-    ['avg-focus','avg-stemming','avg-hrv','avg-angst','avg-creat'].forEach(id=>document.getElementById(id).textContent='—');
-    if(chartMain){chartMain.destroy();chartMain=null}
-    if(chartHRV){chartHRV.destroy();chartHRV=null}
-    return;
-  }
-  document.getElementById('avg-focus').textContent=avg(logs.map(l=>l.focus))??'—';
-  document.getElementById('avg-stemming').textContent=avg(logs.map(l=>l.stemming))??'—';
-  document.getElementById('avg-hrv').textContent=avg(logs.map(l=>l.hrv))??'—';
-  document.getElementById('avg-angst').textContent=avg(logs.map(l=>l.angst))??'—';
-  const ac=avg(logs.map(l=>l.creat));
-  document.getElementById('avg-creat').textContent=ac!=null?CREAT_EMOJI[Math.round(ac)]:'—';
-  const recent=logs.slice(-14);
-  if(chartMain)chartMain.destroy();
-  chartMain=new Chart(document.getElementById('chartMain'),{
-    type:'line',
-    data:{labels:recent.map(l=>l.date),datasets:[
-      {label:'Focus',data:recent.map(l=>l.focus),borderColor:'#1D9E75',backgroundColor:'transparent',tension:0.3,pointRadius:3},
-      {label:'Stemming',data:recent.map(l=>l.stemming),borderColor:'#378ADD',backgroundColor:'transparent',tension:0.3,pointRadius:3,borderDash:[6,3]},
-      {label:'Angst',data:recent.map(l=>l.angst),borderColor:'#D85A30',backgroundColor:'transparent',tension:0.3,pointRadius:3,borderDash:[2,4]}
-    ]},
-    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{min:1,max:10,ticks:{stepSize:1}}}}
-  });
-  const hrvF=recent.filter(l=>l.hrv!=null);
-  if(chartHRV)chartHRV.destroy();chartHRV=null;
-  if(hrvF.length){
-    chartHRV=new Chart(document.getElementById('chartHRV'),{
-      type:'line',
-      data:{labels:hrvF.map(l=>l.date),datasets:[{label:'HRV',data:hrvF.map(l=>l.hrv),borderColor:'#7F77DD',backgroundColor:'transparent',tension:0.3,pointRadius:3}]},
-      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}}}
-    });
-  }
-}
+
 renderHistory();
+
+function showTip(evt,text){
+  let tip=document.getElementById('tooltip');
+  if(!tip){tip=document.createElement('div');tip.id='tooltip';document.body.appendChild(tip);}
+  tip.textContent=text;
+  tip.style.cssText='position:fixed;background:#1a1a1a;color:#fff;font-size:12px;padding:5px 10px;border-radius:6px;pointer-events:none;z-index:999;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,0.2)';
+  tip.style.display='block';
+  moveTip(evt);
+}
+function moveTip(evt){
+  const tip=document.getElementById('tooltip');
+  if(!tip)return;
+  tip.style.left=(evt.clientX+12)+'px';
+  tip.style.top=(evt.clientY-28)+'px';
+}
+function hideTip(){
+  const tip=document.getElementById('tooltip');
+  if(tip)tip.style.display='none';
+}
+document.addEventListener('mousemove',moveTip);
 </script>
 </body>
 </html>
